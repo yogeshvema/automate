@@ -1,0 +1,14 @@
+version: '3.9'
+
+services:
+  backend:
+    build: ./backend
+    container_name: snapsend-api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      DATABASE_URL: sqlite+aiosqlite:///./snapsend.db
+      DEBUG: "true"
+    restart: unless-stopped

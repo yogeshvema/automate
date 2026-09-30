@@ -1,0 +1,32 @@
+# Node / Expo
+node_modules/
+.expo/
+dist/
+web-build/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+*.egg-info/
+.eggs/
+.mypy_cache/
+
+# DB / secrets
+*.db
+*.sqlite
+.env
+backend/.env
+
+# OS
+.DS_Store
+Thumbs.db
