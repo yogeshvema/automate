@@ -1,0 +1,57 @@
+{
+  "expo": {
+    "name": "SnapSend",
+    "slug": "snapsend",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "scheme": "snapsend",
+    "plugins": [
+      "expo-dev-client",
+      "expo-router",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow SnapSend to access your camera to capture photos and videos.",
+          "microphonePermission": "Allow SnapSend to access your microphone to record videos.",
+          "recordAudioAndroid": true
+        }
+      ],
+      "expo-font",
+      "expo-splash-screen"
+    ],
+    "android": {
+      "adaptiveIcon": {
+        "backgroundColor": "#000000"
+      },
+      "package": "com.snapsend.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.INTERNET"
+      ]
+    },
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.snapsend.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "Allow SnapSend to access your camera to capture photos and videos.",
+        "NSMicrophoneUsageDescription": "Allow SnapSend to access your microphone to record videos.",
+        "NSPhotoLibraryAddUsageDescription": "Allow SnapSend to save captured media."
+      }
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "single"
+    },
+    "experiments": {
+      "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "c6156ec5-657d-48f1-98f1-12720e4d05fe"
+      }
+    }
+  }
+}
