@@ -70,23 +70,23 @@ jobs:
         working-directory: mobile
         run: npm ci
 
-      - name: Set up EAS CLI
-        uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install EAS CLI
+        run: npm install -g eas-cli
 
       - name: Build Android Standalone APK
         working-directory: mobile
         env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           PROFILE: ${{ github.event.inputs.profile || 'production' }}
         run: |
-          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+          CLEAN_TOKEN=$(echo "$EXPO_TOKEN" | tr -d '\r\n[:space:]')
+          if [ -z "$CLEAN_TOKEN" ]; then
             echo "::error::EXPO_TOKEN secret is not set in repository secrets!"
             echo "Create an Expo Access Token at https://expo.dev/settings/access-tokens and add it to GitHub Secrets."
             exit 1
           fi
 
+          export EXPO_TOKEN="$CLEAN_TOKEN"
           echo "Starting EAS build for Android profile: $PROFILE"
           eas build \
             --platform android \

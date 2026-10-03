@@ -73,37 +73,40 @@ jobs:
         uses: docker/setup-buildx-action@v3
 
       - name: Build and Push Docker Image
-        env:
-          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
-          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY || 'snapsend-api' }}
-          IMAGE_TAG: ${{ github.sha }}
         run: |
-          echo "Building Docker image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+          CLEAN_REGISTRY=$(echo "${{ steps.login-ecr.outputs.registry }}" | tr -d '\r\n[:space:]')
+          CLEAN_REPO=$(echo "${{ secrets.ECR_REPOSITORY || 'snapsend-api' }}" | tr -d '\r\n[:space:]')
+          CLEAN_TAG=$(echo "${{ github.sha }}" | tr -d '\r\n[:space:]')
+          
+          IMAGE_TAGGED="$CLEAN_REGISTRY/$CLEAN_REPO:$CLEAN_TAG"
+          IMAGE_LATEST="$CLEAN_REGISTRY/$CLEAN_REPO:latest"
+          
+          echo "Building Docker image: $IMAGE_TAGGED"
           docker buildx build \
             --platform linux/arm64 \
-            -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
-            -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
+            -t "$IMAGE_TAGGED" \
+            -t "$IMAGE_LATEST" \
             -f backend/Dockerfile \
             --push \
             backend/
 
       - name: Deploy to AWS ECS Fargate
-        env:
-          CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME || 'snapsend-cluster' }}
-          SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME || 'snapsend-service' }}
-          AWS_REGION: ${{ secrets.AWS_REGION || 'ap-south-1' }}
         run: |
-          echo "Triggering new deployment on ECS Cluster: $CLUSTER_NAME, Service: $SERVICE_NAME"
+          CLEAN_CLUSTER=$(echo "${{ secrets.ECS_CLUSTER_NAME || 'snapsend-cluster' }}" | tr -d '\r\n[:space:]')
+          CLEAN_SERVICE=$(echo "${{ secrets.ECS_SERVICE_NAME || 'snapsend-service' }}" | tr -d '\r\n[:space:]')
+          CLEAN_REGION=$(echo "${{ secrets.AWS_REGION || 'ap-south-1' }}" | tr -d '\r\n[:space:]')
+
+          echo "Triggering deployment on ECS Cluster: $CLEAN_CLUSTER, Service: $CLEAN_SERVICE (Region: $CLEAN_REGION)"
           aws ecs update-service \
-            --cluster "$CLUSTER_NAME" \
-            --service "$SERVICE_NAME" \
+            --cluster "$CLEAN_CLUSTER" \
+            --service "$CLEAN_SERVICE" \
             --force-new-deployment \
-            --region "$AWS_REGION"
+            --region "$CLEAN_REGION"
 
           echo "Waiting for ECS service to reach steady state..."
           aws ecs wait services-stable \
-            --cluster "$CLUSTER_NAME" \
-            --services "$SERVICE_NAME" \
-            --region "$AWS_REGION"
+            --cluster "$CLEAN_CLUSTER" \
+            --services "$CLEAN_SERVICE" \
+            --region "$CLEAN_REGION"
 
           echo "Deployment succeeded! Production container is live on AWS ECS."
