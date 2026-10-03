@@ -101,33 +101,16 @@ Every push to `main` (or manual trigger from GitHub Actions tab) automatically b
 
 ---
 
-## 3. Production AWS Architecture
+## 3. Production AWS Architecture (Live in ap-south-1)
 
-### Recommended Approach: AWS App Runner + Amazon ECR
-For a personal production API, **AWS App Runner** is the optimal choice:
-- **Serverless & Fully Managed**: No EC2 OS patching, SSH keys, or load balancer maintenance.
-- **Free Automatic HTTPS**: Provisioned automatically with a secure `https://<id>.awsapprunner.com` domain.
-- **Production Health Checks & Automatic Rollback**: App Runner continuously monitors `GET /health`. If a new deployment fails the health check (e.g. crash loop or fatal exception), **AWS immediately aborts and rolls back to the previous healthy container**, ensuring zero downtime.
-- **Cost Effective**: Scales down when idle.
-- **CloudWatch Logging**: All structured application logs stream into AWS CloudWatch automatically.
-
-### Automated Setup Script
-Run the automated bootstrap script to provision ECR, IAM, and App Runner in one command:
-
-```bash
-# Ensure AWS CLI is configured with your credentials:
-aws configure
-
-# Run the setup script:
-./aws/setup-aws.sh
-```
-
-The script will:
-1. Create the Amazon ECR repository (`snapsend-api`).
-2. Create the IAM role `AppRunnerECRAccessRole`.
-3. Build and push the initial container image to ECR.
-4. Create the AWS App Runner service with health checks configured on `/health`.
-5. Output the exact secrets to add to GitHub.
+### Architecture: AWS ECS Fargate + Amazon ECR
+- **Region**: `ap-south-1` (Mumbai)
+- **Cluster**: `snapsend-cluster`
+- **Service**: `snapsend-service` (Fargate launch type, ARM64)
+- **Task Definition**: `snapsend-api:2`
+- **ECR Repository**: `376159573859.dkr.ecr.ap-south-1.amazonaws.com/snapsend-api`
+- **Live Health Endpoint**: `http://43.205.142.26:8000/health`
+- **CloudWatch Log Group**: `/ecs/snapsend-api`
 
 ---
 
@@ -142,12 +125,12 @@ Two workflows run automatically on every `git push` to `main`:
    - Runs `pytest backend/tests/ -v` to verify API endpoints, database initialization, and configuration.
 2. **Docker Build & Push**:
    - Authenticates to Amazon ECR.
-   - Builds production Docker image using `backend/Dockerfile`.
+   - Builds production Docker image for `linux/arm64`.
    - Tags with both `latest` and git commit SHA (`${{ github.sha }}`).
-   - Pushes to Amazon ECR.
+   - Pushes to Amazon ECR (`376159573859.dkr.ecr.ap-south-1.amazonaws.com/snapsend-api`).
 3. **AWS Zero-Downtime Deployment & Rollback**:
-   - Triggers `aws apprunner start-deployment`.
-   - Monitors deployment health. If the container fails health check, App Runner automatically keeps the old version live.
+   - Triggers `aws ecs update-service --cluster snapsend-cluster --service snapsend-service --force-new-deployment`.
+   - Waits for the ECS service to reach steady state (`aws ecs wait services-stable`).
 
 ### 2. Mobile App Pipeline (`.github/workflows/mobile-ci-cd.yml`)
 1. **Static Analysis & Typecheck**:
@@ -160,16 +143,18 @@ Two workflows run automatically on every `git push` to `main`:
 
 ## 5. Storing Secrets Securely
 
-No credentials or tokens are committed to source control. Configure these in **GitHub Repository Settings → Secrets and variables → Actions**:
+Configure these in **GitHub Repository Settings → Secrets and variables → Actions**:
 
-| Secret Name | Description | Where to get it |
-|---|---|---|
-| `AWS_ACCESS_KEY_ID` | IAM User Access Key with ECR & App Runner permissions | AWS IAM Console |
-| `AWS_SECRET_ACCESS_KEY` | IAM User Secret Key | AWS IAM Console |
-| `AWS_REGION` | AWS Region (e.g. `us-east-1` or `ap-south-1`) | AWS Console |
-| `ECR_REPOSITORY` | `snapsend-api` | Created by `aws/setup-aws.sh` |
-| `APP_RUNNER_SERVICE_ARN` | Full ARN of the App Runner service | Output by `aws/setup-aws.sh` |
-| `EXPO_TOKEN` | Expo Personal Access Token | [expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens) |
+| Secret Name | Value |
+|---|---|
+| `AWS_ACCESS_KEY_ID` | `AKIAVPFG3S5RXRVIDSML` |
+| `AWS_SECRET_ACCESS_KEY` | *(your secret access key from aws configure)* |
+| `AWS_REGION` | `ap-south-1` |
+| `ECR_REPOSITORY` | `snapsend-api` |
+| `ECS_CLUSTER_NAME` | `snapsend-cluster` |
+| `ECS_SERVICE_NAME` | `snapsend-service` |
+| `EXPO_TOKEN` | Expo Personal Access Token ([expo.dev/settings/access-tokens](https://expo.dev/settings/access-tokens)) |
+
 
 ---
 

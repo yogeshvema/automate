@@ -47,7 +47,7 @@ jobs:
           pytest -v
 
   # ────────────────────────────────────────────────────────────────────────────
-  # 2. Build Docker Image & Deploy to AWS
+  # 2. Build Docker Image & Deploy to AWS ECS Fargate
   # ────────────────────────────────────────────────────────────────────────────
   deploy-to-aws:
     name: Build Docker & Deploy to AWS
@@ -63,7 +63,7 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION || 'us-east-1' }}
+          aws-region: ${{ secrets.AWS_REGION || 'ap-south-1' }}
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -79,52 +79,31 @@ jobs:
           IMAGE_TAG: ${{ github.sha }}
         run: |
           echo "Building Docker image: $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker build \
+          docker buildx build \
+            --platform linux/arm64 \
             -t "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" \
             -t "$ECR_REGISTRY/$ECR_REPOSITORY:latest" \
             -f backend/Dockerfile \
+            --push \
             backend/
-          
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
-          docker push "$ECR_REGISTRY/$ECR_REPOSITORY:latest"
-          echo "IMAGE_URI=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG" >> $GITHUB_ENV
 
-      - name: Trigger AWS App Runner Deployment
-        if: env.APP_RUNNER_SERVICE_ARN != '' || secrets.APP_RUNNER_SERVICE_ARN != ''
+      - name: Deploy to AWS ECS Fargate
         env:
-          SERVICE_ARN: ${{ secrets.APP_RUNNER_SERVICE_ARN }}
+          CLUSTER_NAME: ${{ secrets.ECS_CLUSTER_NAME || 'snapsend-cluster' }}
+          SERVICE_NAME: ${{ secrets.ECS_SERVICE_NAME || 'snapsend-service' }}
+          AWS_REGION: ${{ secrets.AWS_REGION || 'ap-south-1' }}
         run: |
-          if [ -z "$SERVICE_ARN" ]; then
-            echo "Notice: APP_RUNNER_SERVICE_ARN secret not set yet. Skipping App Runner trigger."
-            exit 0
-          fi
+          echo "Triggering new deployment on ECS Cluster: $CLUSTER_NAME, Service: $SERVICE_NAME"
+          aws ecs update-service \
+            --cluster "$CLUSTER_NAME" \
+            --service "$SERVICE_NAME" \
+            --force-new-deployment \
+            --region "$AWS_REGION"
 
-          echo "Starting App Runner deployment for service: $SERVICE_ARN"
-          DEPLOYMENT_ID=$(aws apprunner start-deployment \
-            --service-arn "$SERVICE_ARN" \
-            --query "OperationId" \
-            --output text)
-          echo "Deployment initiated. Operation ID: $DEPLOYMENT_ID"
+          echo "Waiting for ECS service to reach steady state..."
+          aws ecs wait services-stable \
+            --cluster "$CLUSTER_NAME" \
+            --services "$SERVICE_NAME" \
+            --region "$AWS_REGION"
 
-          echo "Monitoring deployment progress..."
-          for i in {1..30}; do
-            STATUS=$(aws apprunner describe-service \
-              --service-arn "$SERVICE_ARN" \
-              --query "Service.Status" \
-              --output text)
-            echo "Current App Runner status: $STATUS"
-            if [ "$STATUS" = "RUNNING" ]; then
-              echo "Deployment succeeded! Service is RUNNING and passed health checks."
-              SERVICE_URL=$(aws apprunner describe-service \
-                --service-arn "$SERVICE_ARN" \
-                --query "Service.ServiceUrl" \
-                --output text)
-              echo "Production URL: https://$SERVICE_URL"
-              break
-            elif [ "$STATUS" = "OPERATION_IN_PROGRESS" ]; then
-              sleep 15
-            else
-              echo "Warning: Service status is $STATUS. Checking service details..."
-              sleep 10
-            fi
-          done
+          echo "Deployment succeeded! Production container is live on AWS ECS."
