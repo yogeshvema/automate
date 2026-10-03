@@ -105,22 +105,33 @@ export default function CameraScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    // Suppress the on-screen volume slider popup while camera is open
-    VolumeManager.showNativeVolumeUI({ enabled: false });
+    let sub: any = null;
+    try {
+      // Suppress the on-screen volume slider popup while camera is open
+      VolumeManager?.showNativeVolumeUI?.({ enabled: false })?.catch?.(() => {});
 
-    const sub = VolumeManager.addVolumeListener((result) => {
-      // result.volume changes on every Up or Down press
-      if (captureModeRef.current === 'picture') {
-        handleCaptureRef.current?.();
-      } else {
-        handleVideoToggleRef.current?.();
-      }
-    });
+      sub = VolumeManager?.addVolumeListener?.((result) => {
+        try {
+          if (captureModeRef.current === 'picture') {
+            handleCaptureRef.current?.();
+          } else {
+            handleVideoToggleRef.current?.();
+          }
+        } catch (err) {
+          console.warn('Shutter remote trigger error:', err);
+        }
+      });
+    } catch (e) {
+      console.warn('VolumeManager initialization error:', e);
+    }
 
     return () => {
-      sub.remove();
-      // Restore the volume UI when leaving the camera screen
-      VolumeManager.showNativeVolumeUI({ enabled: true });
+      try {
+        sub?.remove?.();
+      } catch {}
+      try {
+        VolumeManager?.showNativeVolumeUI?.({ enabled: true })?.catch?.(() => {});
+      } catch {}
     };
   }, []);
 

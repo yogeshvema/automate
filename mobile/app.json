@@ -7,7 +7,6 @@
     "userInterfaceStyle": "dark",
     "scheme": "snapsend",
     "plugins": [
-      "expo-dev-client",
       "expo-router",
       [
         "expo-camera",
@@ -18,7 +17,8 @@
         }
       ],
       "expo-font",
-      "expo-splash-screen"
+      "expo-splash-screen",
+      "expo-system-ui"
     ],
     "android": {
       "adaptiveIcon": {
