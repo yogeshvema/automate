@@ -1,0 +1,36 @@
+version: '3.9'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: snapsend-api:latest
+    container_name: snapsend-api-prod
+    restart: always
+    ports:
+      - "8000:8000"
+    volumes:
+      - snapsend-data:/app/data
+    environment:
+      - APP_NAME=SnapSend API
+      - ENVIRONMENT=production
+      - DEBUG=false
+      - LOG_LEVEL=INFO
+      - DATABASE_URL=sqlite+aiosqlite:////app/data/snapsend.db
+      - SECRET_KEY=${SECRET_KEY:-default_prod_secret_key_change_in_env}
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  snapsend-data:
+    driver: local

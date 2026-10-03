@@ -1,0 +1,94 @@
+name: Mobile Android APK CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+    paths:
+      - "mobile/**"
+      - ".github/workflows/mobile-ci-cd.yml"
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: "EAS build profile (production or preview)"
+        required: true
+        default: "production"
+        type: choice
+        options:
+          - "production"
+          - "preview"
+
+concurrency:
+  group: mobile-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. Typecheck & Verification
+  # ────────────────────────────────────────────────────────────────────────────
+  typecheck:
+    name: TypeScript Check & Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "mobile/package-lock.json"
+
+      - name: Install Dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Run TypeScript Check
+        working-directory: mobile
+        run: npm run typecheck
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Build Production APK via EAS
+  # ────────────────────────────────────────────────────────────────────────────
+  build-apk:
+    name: Build Standalone Android APK
+    needs: typecheck
+    if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+          cache-dependency-path: "mobile/package-lock.json"
+
+      - name: Install Dependencies
+        working-directory: mobile
+        run: npm ci
+
+      - name: Set up EAS CLI
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Build Android Standalone APK
+        working-directory: mobile
+        env:
+          PROFILE: ${{ github.event.inputs.profile || 'production' }}
+        run: |
+          if [ -z "${{ secrets.EXPO_TOKEN }}" ]; then
+            echo "::error::EXPO_TOKEN secret is not set in repository secrets!"
+            echo "Create an Expo Access Token at https://expo.dev/settings/access-tokens and add it to GitHub Secrets."
+            exit 1
+          fi
+
+          echo "Starting EAS build for Android profile: $PROFILE"
+          eas build \
+            --platform android \
+            --profile "$PROFILE" \
+            --non-interactive

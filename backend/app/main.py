@@ -1,15 +1,28 @@
+import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from .config import get_settings
 from .database import init_db
 from .routers import health, destinations, media
+
+settings = get_settings()
+
+logging.basicConfig(
+    level=getattr(logging, settings.log_level.upper(), logging.INFO),
+    format="[%(asctime)s] [%(levelname)s] [%(name)s]: %(message)s",
+)
+logger = logging.getLogger("snapsend")
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Starting up SnapSend API (environment=%s)...", settings.environment)
     await init_db()
+    logger.info("Database initialized successfully.")
     yield
+    logger.info("Shutting down SnapSend API.")
 
 
 app = FastAPI(
@@ -30,3 +43,4 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(destinations.router)
 app.include_router(media.router)
+

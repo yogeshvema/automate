@@ -20,6 +20,10 @@ venv/
 *.egg-info/
 .eggs/
 .mypy_cache/
+.pytest_cache/
+*.log
+*.apk
+*.aab
 
 # DB / secrets
 *.db
