@@ -108,10 +108,14 @@ export default function CameraScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
+    let lastTriggerTime = 0;
     const onKey = (event: any) => {
+      const now = Date.now();
+      if (now - lastTriggerTime < 500) return; // Prevent duplicate triggers
       console.log('[CameraScreen] Hardware key event received:', event);
       const k = event?.key || (event?.keyCode === 25 ? 'VOLUME_DOWN' : event?.keyCode === 24 ? 'VOLUME_UP' : null);
       if (k === 'VOLUME_DOWN' || k === 'VOLUME_UP') {
+        lastTriggerTime = now;
         if (captureModeRef.current === 'picture') {
           handleCaptureRef.current?.();
         } else {
