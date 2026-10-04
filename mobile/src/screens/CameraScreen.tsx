@@ -108,19 +108,24 @@ export default function CameraScreen() {
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
-    const sub = DeviceEventEmitter.addListener('hardwareKeyEvent', (event: any) => {
+    const onKey = (event: any) => {
       console.log('[CameraScreen] Hardware key event received:', event);
-      if (event?.key === 'VOLUME_DOWN' || event?.key === 'VOLUME_UP') {
+      const k = event?.key || (event?.keyCode === 25 ? 'VOLUME_DOWN' : event?.keyCode === 24 ? 'VOLUME_UP' : null);
+      if (k === 'VOLUME_DOWN' || k === 'VOLUME_UP') {
         if (captureModeRef.current === 'picture') {
           handleCaptureRef.current?.();
         } else {
           handleVideoToggleRef.current?.();
         }
       }
-    });
+    };
+
+    const sub1 = DeviceEventEmitter.addListener('hardwareKeyEvent', onKey);
+    const sub2 = DeviceEventEmitter.addListener('onHardwareVolumeButton', onKey);
 
     return () => {
-      sub.remove();
+      sub1.remove();
+      sub2.remove();
     };
   }, []);
 
