@@ -3,6 +3,7 @@
     "name": "SnapSend",
     "slug": "snapsend",
     "version": "1.0.0",
+    "newArchEnabled": false,
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "snapsend",
@@ -18,7 +19,19 @@
       ],
       "expo-font",
       "expo-splash-screen",
-      "expo-system-ui"
+      "expo-system-ui",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "newArchEnabled": false
+          },
+          "ios": {
+            "newArchEnabled": false
+          }
+        }
+      ],
+      "./plugins/withDisableNewArch"
     ],
     "android": {
       "adaptiveIcon": {

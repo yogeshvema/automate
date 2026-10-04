@@ -110,8 +110,14 @@ export default function CameraScreen() {
       // Suppress the on-screen volume slider popup while camera is open
       VolumeManager?.showNativeVolumeUI?.({ enabled: false })?.catch?.(() => {});
 
+      // Keep baseline volume at 0.5 so Volume Up & Volume Down both register changes reliably
+      VolumeManager?.setVolume?.(0.5, { showUI: false, playSound: false })?.catch?.(() => {});
+
       sub = VolumeManager?.addVolumeListener?.((result) => {
         try {
+          // Reset volume to 0.5 so subsequent button presses will trigger the listener
+          VolumeManager?.setVolume?.(0.5, { showUI: false, playSound: false })?.catch?.(() => {});
+
           if (captureModeRef.current === 'picture') {
             handleCaptureRef.current?.();
           } else {
