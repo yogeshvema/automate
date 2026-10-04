@@ -31,7 +31,8 @@
           }
         }
       ],
-      "./plugins/withDisableNewArch"
+      "./plugins/withDisableNewArch",
+      "./plugins/withVolumeKeyInterceptor"
     ],
     "android": {
       "adaptiveIcon": {

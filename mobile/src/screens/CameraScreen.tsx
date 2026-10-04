@@ -7,6 +7,7 @@ import {
   Alert,
   Platform,
   AppState,
+  DeviceEventEmitter,
 } from 'react-native';
 import VolumeManager from 'react-native-volume-manager';
 import {
@@ -102,6 +103,28 @@ export default function CameraScreen() {
   const handleCaptureRef = useRef<(() => void) | null>(null);
   const handleVideoToggleRef = useRef<(() => void) | null>(null);
 
+  // ── Hardware Volume Button Interception (Native Activity Key Listener) ──
+  // Intercepts physical Volume Down/Up buttons and Bluetooth remotes directly from MainActivity.onKeyDown
+  useEffect(() => {
+    if (Platform.OS === 'web') return;
+
+    const sub = DeviceEventEmitter.addListener('hardwareKeyEvent', (event: any) => {
+      console.log('[CameraScreen] Hardware key event received:', event);
+      if (event?.key === 'VOLUME_DOWN' || event?.key === 'VOLUME_UP') {
+        if (captureModeRef.current === 'picture') {
+          handleCaptureRef.current?.();
+        } else {
+          handleVideoToggleRef.current?.();
+        }
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
+  // ── Bluetooth shutter remote via VolumeManager fallback ─────────────────────
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
@@ -115,7 +138,6 @@ export default function CameraScreen() {
 
       sub = VolumeManager?.addVolumeListener?.((result) => {
         try {
-          // Reset volume to 0.5 so subsequent button presses will trigger the listener
           VolumeManager?.setVolume?.(0.5, { showUI: false, playSound: false })?.catch?.(() => {});
 
           if (captureModeRef.current === 'picture') {
@@ -139,6 +161,27 @@ export default function CameraScreen() {
         VolumeManager?.showNativeVolumeUI?.({ enabled: true })?.catch?.(() => {});
       } catch {}
     };
+  }, []);
+
+  // ── Mac / Web Keyboard Listener for testing on Mac ──────────────────────────
+  useEffect(() => {
+    if (Platform.OS !== 'web') return;
+
+    const handleKeyDown = (e: any) => {
+      if (e.code === 'Space' || e.key === 'ArrowDown' || e.key === 'Enter') {
+        e.preventDefault?.();
+        if (captureModeRef.current === 'picture') {
+          handleCaptureRef.current?.();
+        } else {
+          handleVideoToggleRef.current?.();
+        }
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener('keydown', handleKeyDown);
+      return () => window.removeEventListener('keydown', handleKeyDown);
+    }
   }, []);
 
 
