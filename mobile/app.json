@@ -3,7 +3,6 @@
     "name": "SnapSend",
     "slug": "snapsend",
     "version": "1.0.0",
-    "newArchEnabled": false,
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "scheme": "snapsend",
@@ -35,6 +34,7 @@
       "./plugins/withVolumeKeyInterceptor"
     ],
     "android": {
+      "versionCode": 2,
       "adaptiveIcon": {
         "backgroundColor": "#000000"
       },
