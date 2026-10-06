@@ -6,7 +6,6 @@ import { Destination } from '../types';
 const STORAGE_KEY = 'snapsend_destination_v1';
 const AUTOSEND_KEY = 'snapsend_autosend_v1';
 
-// Web-safe and fault-tolerant storage helpers
 const storage = {
   getItem: async (key: string): Promise<string | null> => {
     if (Platform.OS === 'web') {
@@ -76,7 +75,6 @@ interface SettingsState {
   destination: Destination | null;
   autoSendEnabled: boolean;
   isLoading: boolean;
-  /** Call once on app startup (in _layout.tsx). */
   loadSettings: () => Promise<void>;
   setDestination: (d: Destination) => Promise<void>;
   clearDestination: () => Promise<void>;
@@ -86,7 +84,7 @@ interface SettingsState {
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   destination: null,
-  autoSendEnabled: true, // Default to enabled
+  autoSendEnabled: true,
   isLoading: true,
 
   loadSettings: async () => {

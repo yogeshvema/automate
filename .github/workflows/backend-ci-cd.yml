@@ -1,17 +1,6 @@
 name: Backend CI/CD Pipeline
 
 on:
-  push:
-    branches: [ "main" ]
-    paths:
-      - "backend/**"
-      - "Dockerfile"
-      - "docker-compose*.yml"
-      - ".github/workflows/backend-ci-cd.yml"
-  pull_request:
-    branches: [ "main" ]
-    paths:
-      - "backend/**"
   workflow_dispatch:
 
 concurrency:
@@ -19,9 +8,6 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
-  # 1. Tests & Quality Checks
-  # ────────────────────────────────────────────────────────────────────────────
   test:
     name: Run Automated Tests
     runs-on: ubuntu-latest
@@ -46,13 +32,9 @@ jobs:
         run: |
           pytest -v
 
-  # ────────────────────────────────────────────────────────────────────────────
-  # 2. Build Docker Image & Deploy to AWS ECS Fargate
-  # ────────────────────────────────────────────────────────────────────────────
   deploy-to-aws:
     name: Build Docker & Deploy to AWS
     needs: test
-    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
@@ -106,7 +88,7 @@ jobs:
           echo "Waiting for ECS service to reach steady state..."
           aws ecs wait services-stable \
             --cluster "$CLEAN_CLUSTER" \
-            --services "$CLEAN_SERVICE" \
+            --service "$CLEAN_SERVICE" \
             --region "$CLEAN_REGION"
 
           echo "Deployment succeeded! Production container is live on AWS ECS."

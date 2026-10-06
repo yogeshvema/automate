@@ -2,10 +2,6 @@ import { Platform } from 'react-native';
 import { CapturedMedia, Destination, SendResult } from '../types';
 import { getProvider } from '../providers';
 
-/**
- * MediaService — the single orchestrator between the camera and any provider.
- * It calls the correct provider, then cleans up the local temp file on native platforms.
- */
 export class MediaService {
   static async send(
     media: CapturedMedia,
@@ -20,7 +16,6 @@ export class MediaService {
         ? await provider.sendPhoto(media, caption, onProgress)
         : await provider.sendVideo(media, caption, onProgress);
 
-    // Remove local temp file after successful delivery (native only)
     if (result.success && Platform.OS !== 'web') {
       try {
         const FileSystem = require('expo-file-system/legacy');

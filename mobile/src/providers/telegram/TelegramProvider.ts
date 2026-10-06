@@ -11,7 +11,6 @@ export class TelegramProvider implements MessageProvider {
     this.apiBase = `${TELEGRAM_BASE}/bot${config.botToken}`;
   }
 
-  // ─── sendPhoto ────────────────────────────────────────────────────────────
   async sendPhoto(
     media: CapturedMedia,
     caption?: string,
@@ -24,7 +23,6 @@ export class TelegramProvider implements MessageProvider {
         return this.sendWeb(media.uri, 'sendPhoto', 'photo', `photo_${Date.now()}.jpg`, caption, onProgress);
       }
 
-      // Native: use FileSystem.uploadAsync — reads file at OS level, no JS blob corruption
       return this.sendNativeUpload(
         media.uri, 'sendPhoto', 'photo', 'image/jpeg', `photo_${Date.now()}.jpg`, caption, onProgress,
       );
@@ -33,7 +31,6 @@ export class TelegramProvider implements MessageProvider {
     }
   }
 
-  // ─── sendVideo ────────────────────────────────────────────────────────────
   async sendVideo(
     media: CapturedMedia,
     caption?: string,
@@ -58,7 +55,6 @@ export class TelegramProvider implements MessageProvider {
         );
       }
 
-      // Native: try sendVideo, fall back to sendDocument
       onProgress?.(15);
       const videoRes = await this.sendNativeUpload(
         media.uri, 'sendVideo', 'video', 'video/mp4', `video_${Date.now()}.mp4`, caption, onProgress,
@@ -74,11 +70,6 @@ export class TelegramProvider implements MessageProvider {
     }
   }
 
-  // ─── Native upload via FileSystem.uploadAsync (no JS blob layer) ──────────
-  // This is the ONLY reliable way to upload a local file:// on React Native.
-  // fetch(fileUri).blob() internally stores the file as base64 text in RN's
-  // blob store, so the uploaded bytes are corrupt. uploadAsync reads the file
-  // at the native layer and streams it as real binary multipart data.
   private async sendNativeUpload(
     fileUri: string,
     endpoint: string,
@@ -89,10 +80,8 @@ export class TelegramProvider implements MessageProvider {
     onProgress?: (pct: number) => void,
   ): Promise<SendResult> {
     try {
-      // Lazy-require so this code path is never bundled for web
       const FileSystem = require('expo-file-system/legacy');
 
-      // Verify file exists before attempting upload
       const info = await FileSystem.getInfoAsync(fileUri);
       console.log('[TelegramProvider] native upload file info:', JSON.stringify(info));
       if (!info.exists) {
@@ -136,7 +125,6 @@ export class TelegramProvider implements MessageProvider {
     }
   }
 
-  // ─── Web upload via fetch → Blob → FormData ───────────────────────────────
   private async sendWeb(
     uri: string,
     endpoint: string,
@@ -179,7 +167,6 @@ export class TelegramProvider implements MessageProvider {
     }
   }
 
-  // ─── Connection tests ─────────────────────────────────────────────────────
   async testConnection(): Promise<boolean> {
     const res = await this.testConnectionDetailed();
     return res.ok;

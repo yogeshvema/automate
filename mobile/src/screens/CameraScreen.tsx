@@ -45,14 +45,12 @@ export default function CameraScreen() {
     takePhoto, startRecording, stopRecording,
   } = useCamera();
 
-  // Recording timer
   useEffect(() => {
     if (!isRecording) { setRecordSeconds(0); return; }
     const id = setInterval(() => setRecordSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [isRecording]);
 
-  // Cleanly handle app being backgrounded or screen locked
   useEffect(() => {
     const sub = AppState.addEventListener('change', (nextState) => {
       if (nextState !== 'active' && isRecording) {
@@ -62,7 +60,6 @@ export default function CameraScreen() {
     return () => sub.remove();
   }, [isRecording, stopRecording]);
 
-  // Auto-reset overlay after success
   useEffect(() => {
     if (sendStatus.state !== 'sent') return;
     const t = setTimeout(reset, 2500);
@@ -93,25 +90,19 @@ export default function CameraScreen() {
 
   const isCapturing = useRef(false);
 
-  // ── Bluetooth shutter remote via Volume button ─────────────────────────────
-  // BT camera remotes send Volume Up or Volume Down when clicked.
-  // react-native-volume-manager intercepts these BEFORE Android processes them,
-  // so we can trigger capture and suppress the volume UI popup.
   const captureModeRef = useRef(captureMode);
   captureModeRef.current = captureMode;
 
   const handleCaptureRef = useRef<(() => void) | null>(null);
   const handleVideoToggleRef = useRef<(() => void) | null>(null);
 
-  // ── Hardware Volume Button Interception (Native Activity Key Listener) ──
-  // Intercepts physical Volume Down/Up buttons and Bluetooth remotes directly from MainActivity.onKeyDown
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
     let lastTriggerTime = 0;
     const onKey = (event: any) => {
       const now = Date.now();
-      if (now - lastTriggerTime < 500) return; // Prevent duplicate triggers
+      if (now - lastTriggerTime < 500) return;
       console.log('[CameraScreen] Hardware key event received:', event);
       const k = event?.key || (event?.keyCode === 25 ? 'VOLUME_DOWN' : event?.keyCode === 24 ? 'VOLUME_UP' : null);
       if (k === 'VOLUME_DOWN' || k === 'VOLUME_UP') {
@@ -133,16 +124,13 @@ export default function CameraScreen() {
     };
   }, []);
 
-  // ── Bluetooth shutter remote via VolumeManager fallback ─────────────────────
   useEffect(() => {
     if (Platform.OS === 'web') return;
 
     let sub: any = null;
     try {
-      // Suppress the on-screen volume slider popup while camera is open
       VolumeManager?.showNativeVolumeUI?.({ enabled: false })?.catch?.(() => {});
 
-      // Keep baseline volume at 0.5 so Volume Up & Volume Down both register changes reliably
       VolumeManager?.setVolume?.(0.5, { showUI: false, playSound: false })?.catch?.(() => {});
 
       sub = VolumeManager?.addVolumeListener?.((result) => {
@@ -172,7 +160,6 @@ export default function CameraScreen() {
     };
   }, []);
 
-  // ── Mac / Web Keyboard Listener for testing on Mac ──────────────────────────
   useEffect(() => {
     if (Platform.OS !== 'web') return;
 
@@ -251,7 +238,6 @@ export default function CameraScreen() {
     send(media);
   }, [isRecording, micPerm, requestMicPerm, startRecording, stopRecording, autoSendEnabled, guardDestination, send]);
 
-  // Keep refs in sync with latest callbacks (runs every render)
   handleCaptureRef.current = handleCapture;
   handleVideoToggleRef.current = handleVideoToggle;
 
@@ -263,7 +249,6 @@ export default function CameraScreen() {
     }
   }, [isRecording, setIsReady]);
 
-  // ─── Permission screens ───────────────────────────────────────────────────
   if (!camPerm) return <View style={styles.container} />;
 
   if (!camPerm.granted) {
@@ -281,7 +266,6 @@ export default function CameraScreen() {
     );
   }
 
-  // ─── Main camera UI ───────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <CameraView
@@ -386,7 +370,6 @@ export default function CameraScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#000' },
 
-  // BT shutter remote indicator
   remoteIndicator: {
     position: 'absolute',
     alignSelf: 'center',
@@ -405,7 +388,6 @@ const styles = StyleSheet.create({
   },
   center: { alignItems: 'center', justifyContent: 'center', padding: 36 },
 
-  // top bar
   topBar: {
     position: 'absolute', top: 0, left: 0, right: 0,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -427,7 +409,6 @@ const styles = StyleSheet.create({
   recDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#fff', marginRight: 7 },
   recTimer: { color: '#fff', fontSize: 14, fontWeight: '700', fontVariant: ['tabular-nums'] },
 
-  // bottom bar
   bottomBar: {
     position: 'absolute', bottom: 0, left: 0, right: 0, alignItems: 'center',
   },
@@ -460,7 +441,6 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 5, backgroundColor: '#ff3b30',
   },
 
-  // permission screen
   permTitle: {
     color: '#fff', fontSize: 22, fontWeight: '700',
     marginTop: 24, marginBottom: 10, textAlign: 'center',

@@ -1,7 +1,5 @@
-// ─── Provider ────────────────────────────────────────────────────────────────
 export type ProviderType = 'telegram';
 
-// ─── Media ───────────────────────────────────────────────────────────────────
 export type MediaType = 'photo' | 'video';
 
 export interface CapturedMedia {
@@ -9,16 +7,14 @@ export interface CapturedMedia {
   type: MediaType;
   width?: number;
   height?: number;
-  duration?: number; // seconds (video only)
+  duration?: number;
 }
 
-// ─── Provider config ──────────────────────────────────────────────────────────
 export interface TelegramConfig {
   botToken: string;
   chatId: string;
 }
 
-// ─── Destination ──────────────────────────────────────────────────────────────
 export interface Destination {
   id: string;
   name: string;
@@ -27,18 +23,16 @@ export interface Destination {
   isDefault: boolean;
 }
 
-// ─── Send result ──────────────────────────────────────────────────────────────
 export interface SendResult {
   success: boolean;
   messageId?: string | number;
   error?: string;
 }
 
-// ─── Send status (UI state machine) ──────────────────────────────────────────
 export type SendState = 'idle' | 'capturing' | 'sending' | 'sent' | 'error';
 
 export interface SendStatus {
   state: SendState;
-  progress?: number; // 0–100
+  progress?: number;
   error?: string;
 }

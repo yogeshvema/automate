@@ -1,4 +1,3 @@
-# Node / Expo
 node_modules/
 .expo/
 dist/
@@ -11,7 +10,6 @@ web-build/
 *.orig.*
 .env
 
-# Python
 __pycache__/
 *.py[cod]
 *.pyo
@@ -25,12 +23,25 @@ venv/
 *.apk
 *.aab
 
-# DB / secrets
 *.db
 *.sqlite
-.env
 backend/.env
 
-# OS
+**/.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+crash.*.log
+*.tfvars
+!*.tfvars.example
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+.terraformrc
+terraform.rc
+
 .DS_Store
 Thumbs.db
+
+promt.txt

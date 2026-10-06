@@ -19,7 +19,6 @@ async def upload_and_send(
     caption: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
 ):
-    # Resolve destination
     result = await db.execute(select(Destination).where(Destination.id == destination_id))
     dest = result.scalar_one_or_none()
     if not dest:
@@ -29,7 +28,6 @@ async def upload_and_send(
     content_type = file.content_type or ""
     media_type = "video" if content_type.startswith("video") else "photo"
 
-    # Persist a pending log entry
     log = SendLog(
         destination_id=dest.id,
         media_type=media_type,
@@ -39,14 +37,12 @@ async def upload_and_send(
     db.add(log)
     await db.commit()
 
-    # Dispatch to provider
     provider = get_provider(dest.provider_type, dest.config_json)
     if media_type == "photo":
         send_result = await provider.send_photo(file_bytes, file.filename or "photo.jpg", caption)
     else:
         send_result = await provider.send_video(file_bytes, file.filename or "video.mp4", caption)
 
-    # Update log
     log.status = "sent" if send_result.success else "failed"
     log.error_message = send_result.error
     log.provider_message_id = send_result.message_id

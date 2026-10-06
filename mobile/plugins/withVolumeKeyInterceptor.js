@@ -2,16 +2,7 @@ const { withDangerousMod, withMainActivity, withMainApplication } = require('exp
 const fs = require('fs');
 const path = require('path');
 
-/**
- * Expo Config Plugin to intercept hardware volume button events (Volume Down and Volume Up)
- * and Bluetooth camera shutter remotes directly at the Android Activity root.
- *
- * 1. Creates VolumeKeyModule.kt and VolumeKeyPackage.kt in the Android native project.
- * 2. Registers VolumeKeyPackage in MainApplication.kt.
- * 3. Intercepts onKeyDown and onKeyUp in MainActivity.kt, forwarding key events to React Native.
- */
 const withVolumeKeyInterceptor = (config) => {
-  // Step 1: Write native VolumeKeyModule and VolumeKeyPackage
   config = withDangerousMod(config, [
     'android',
     async (modConfig) => {
@@ -85,11 +76,9 @@ class VolumeKeyPackage : ReactPackage {
     },
   ]);
 
-  // Step 2: Register VolumeKeyPackage in MainApplication.kt
   config = withMainApplication(config, (modConfig) => {
     let content = modConfig.modResults.contents;
     if (!content.includes('VolumeKeyPackage')) {
-      // Add package registration in packageList
       content = content.replace(
         /PackageList\(this\)\.packages\.apply\s*\{([\s\S]*?)\}/,
         `PackageList(this).packages.apply {\n          add(VolumeKeyPackage())$1}`
@@ -99,7 +88,6 @@ class VolumeKeyPackage : ReactPackage {
     return modConfig;
   });
 
-  // Step 3: Intercept onKeyDown in MainActivity.kt
   config = withMainActivity(config, (modConfig) => {
     let content = modConfig.modResults.contents;
     if (!content.includes('VolumeKeyModule.sendEvent')) {
@@ -116,12 +104,10 @@ import com.facebook.react.modules.core.DeviceEventManagerModule
       if (event == null || event.repeatCount == 0) {
         val keyName = if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN) "VOLUME_DOWN" else "VOLUME_UP"
         
-        // 1. Send via registered Native Module instance (guaranteed context)
         try {
           VolumeKeyModule.sendEvent(keyName, keyCode)
         } catch (_: Throwable) {}
 
-        // 2. Direct Application reactHost fallback
         try {
           val appReactHost = (application as? ReactApplication)?.reactHost
           val ctx = appReactHost?.currentReactContext

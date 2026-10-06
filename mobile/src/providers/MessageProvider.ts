@@ -1,9 +1,5 @@
 import { CapturedMedia, SendResult } from '../types';
 
-/**
- * Common interface every messaging provider must implement.
- * The Camera and MediaService NEVER import provider-specific code.
- */
 export interface MessageProvider {
   sendPhoto(
     media: CapturedMedia,
@@ -17,6 +13,5 @@ export interface MessageProvider {
     onProgress?: (pct: number) => void,
   ): Promise<SendResult>;
 
-  /** Returns true if credentials are valid and service is reachable. */
   testConnection(): Promise<boolean>;
 }

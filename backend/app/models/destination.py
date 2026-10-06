@@ -13,7 +13,6 @@ class Destination(Base):
     )
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     provider_type: Mapped[str] = mapped_column(String(50), nullable=False)
-    # JSON-encoded provider config (bot token etc.)
     config_json: Mapped[str] = mapped_column(Text, nullable=False)
     is_default: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)

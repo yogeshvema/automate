@@ -10,7 +10,6 @@ export function useCamera() {
   const [isReady, setIsReady] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
 
-  // Web recording refs
   const webRecorderRef = useRef<MediaRecorder | null>(null);
   const webAudioStreamRef = useRef<MediaStream | null>(null);
 
@@ -45,7 +44,6 @@ export function useCamera() {
   const startRecording = useCallback(async (): Promise<CapturedMedia | null> => {
     if (isRecording) return null;
 
-    // ── Web Video Recording via MediaRecorder ──
     if (Platform.OS === 'web') {
       try {
         const videoEl = typeof document !== 'undefined' ? document.querySelector('video') : null;
@@ -63,7 +61,6 @@ export function useCamera() {
 
         const tracks: MediaStreamTrack[] = [videoTrack];
 
-        // Request microphone stream on web if possible
         try {
           if (navigator?.mediaDevices?.getUserMedia) {
             const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -77,7 +74,6 @@ export function useCamera() {
 
         const combinedStream = new MediaStream(tracks);
 
-        // Find supported MIME type
         const candidates = [
           'video/mp4;codecs=avc1,mp4a.40.2',
           'video/mp4',
@@ -98,6 +94,7 @@ export function useCamera() {
           : new MediaRecorder(combinedStream);
 
         const chunks: Blob[] = [];
+
         recorder.ondataavailable = (e) => {
           if (e.data && e.data.size > 0) {
             chunks.push(e.data);
@@ -109,12 +106,11 @@ export function useCamera() {
             if (recorder.state === 'recording') {
               recorder.stop();
             }
-          }, 60000); // 60s max
+          }, 60000);
 
           recorder.onstop = () => {
             clearTimeout(maxTimer);
 
-            // Clean up microphone tracks so browser mic indicator turns off
             if (webAudioStreamRef.current) {
               webAudioStreamRef.current.getTracks().forEach((t) => t.stop());
               webAudioStreamRef.current = null;
@@ -153,7 +149,6 @@ export function useCamera() {
       }
     }
 
-    // ── Native Mobile Recording via CameraView ──
     if (!cameraRef.current) return null;
     setIsRecording(true);
     try {

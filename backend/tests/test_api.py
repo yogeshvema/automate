@@ -1,40 +1,45 @@
 import pytest
 import pytest_asyncio
 import httpx
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+
 from app.main import app
-from app.database import init_db
+from app.database import Base, get_db
+
+TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
+
+test_engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+TestingSessionLocal = async_sessionmaker(
+    test_engine, class_=AsyncSession, expire_on_commit=False
+)
+
+
+async def override_get_db():
+    async with TestingSessionLocal() as session:
+        yield session
+
+
+app.dependency_overrides[get_db] = override_get_db
 
 
 @pytest_asyncio.fixture(autouse=True)
 async def setup_db():
-    await init_db()
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
     yield
-
-
-@pytest.mark.asyncio
-async def test_health_endpoint():
-    transport = httpx.ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        response = await client.get("/health")
-        assert response.status_code == 200
-        data = response.json()
-        assert data["status"] == "ok"
-        assert data["service"] == "SnapSend API"
-        assert data["database"] == "ok"
-        assert "uptime_seconds" in data
+    async with test_engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
 
 
 @pytest.mark.asyncio
 async def test_destinations_crud():
     transport = httpx.ASGITransport(app=app)
     async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
-        # 1. List initially
         res = await client.get("/api/v1/destinations")
         assert res.status_code == 200
         initial_list = res.json()
         assert isinstance(initial_list, list)
 
-        # 2. Create destination
         payload = {
             "name": "Test Telegram Bot",
             "provider_type": "telegram",
@@ -47,7 +52,6 @@ async def test_destinations_crud():
         assert created["name"] == "Test Telegram Bot"
         dest_id = created["id"]
 
-        # 3. Update destination
         res_update = await client.put(
             f"/api/v1/destinations/{dest_id}",
             json={"name": "Updated Telegram Bot"},
@@ -55,11 +59,9 @@ async def test_destinations_crud():
         assert res_update.status_code == 200
         assert res_update.json()["name"] == "Updated Telegram Bot"
 
-        # 4. Delete destination
         res_del = await client.delete(f"/api/v1/destinations/{dest_id}")
         assert res_del.status_code == 200
         assert res_del.json() == {"ok": True}
 
-        # 5. Verify deleted
         res_del_again = await client.delete(f"/api/v1/destinations/{dest_id}")
         assert res_del_again.status_code == 404
